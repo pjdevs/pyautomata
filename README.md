@@ -18,6 +18,27 @@ Support for :
 - Build an FA from regular expressions
 - Improve management of new states while determinizing an NFA
 
+# Examples
+
+```python
+a = NFAutomaton(set("ab"))
+
+a.add_state(0, initial=True)
+a.add_state(1, final=True)
+a.add_state(2)
+
+a.add_transition("ab", 0, 0)
+a.add_transition("a", 0, 1)
+a.add_transition("ab", 1, 2)
+a.add_transition("ab", 2, 2)
+
+da = a.determinized()
+
+print(a.accepts("ababba"), da.accepts("ababba")) # True True
+print(a.accepts("ababbababb"), da.accepts("ababbababb")) # False False
+print(a.accepts("test"), da.accepts("test")) # False False
+```
+
 ## Contributors
 
 Author: pjdevs
