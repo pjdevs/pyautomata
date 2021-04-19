@@ -1,5 +1,7 @@
 from abc import ABC, abstractmethod
 from queue import Queue
+from copy import deepcopy
+from unordered_pairs import unique_unordered_pairs, UnorderedPair
 
 def _is_word_on_alphabet(word : set, alphabet: set):
     return word.issubset(alphabet)
@@ -62,6 +64,20 @@ class FAutomaton(ABC):
         """
         pass
 
+    @abstractmethod
+    def complete(self):
+        """
+        Complete the FA with a PI state (hole state)
+        """
+        pass
+
+    @abstractmethod
+    def has_been_completed(self):
+        """
+        Predicate if the FA has been completed explicitely (with `complete` method)
+        """
+        pass
+
 class DFAutomaton(FAutomaton):
     """
     Class which represents a Deterministic Finite Automaton
@@ -69,13 +85,27 @@ class DFAutomaton(FAutomaton):
 
     def __init__(self, alphabet : set):
         """
-        Create a new Deterministic Finite Automaton with given states `states`
+        Create a new Deterministic Finite Automaton with given alphabet `alphabet`
         """
 
         self._alphabet = alphabet
         self._states = {}
         self._initial_state_id = None
         self._final_states_ids = set()
+        self._completed = False
+
+    def _successor(self, state_id, letter):
+        """
+        Returns, if it exists, the successor of the state `state_id` by transition `letter`.
+        Else, returns `None`.
+        """
+
+        for transition in self._states[state_id]._transitions:
+            if letter in transition._letters:
+                return transition._to
+
+        return None
+
 
     def accepts(self, word : str):
         """
@@ -85,14 +115,9 @@ class DFAutomaton(FAutomaton):
         current_state_id = self._initial_state_id
 
         for letter in word:
-            found = False
+            current_state_id = self._successor(current_state_id, letter)
 
-            for transition in self._states[current_state_id]._transitions:
-                if letter in transition._letters:
-                    current_state_id = transition._to
-                    found = True
-
-            if not found:
+            if current_state_id is None:
                 return False
 
         return self._states[current_state_id]._final
@@ -142,6 +167,88 @@ class DFAutomaton(FAutomaton):
 
         from_state._transitions.add(Transition(letters_set, to_id))
 
+    def complete(self):
+        """
+        Complete the FA with a PI state (hole state)
+        """
+        pass
+
+    def has_been_completed(self):
+        """
+        Predicate if the FA has been completed explicitely (with `complete` method)
+        """
+        return self._completed
+
+    def _reachable_part(self):
+        """
+        Returns a new DFA which represent the reachable part of this automaton
+        """
+
+        # mark only reachable states (Breadth First Search)
+        state_queue = Queue()
+        state_queue.put(self._initial_state_id)
+
+        marked = {i: False for i in self._states.keys()}
+        waiting = deepcopy(marked)
+
+        while state_queue.qsize() > 0:
+            state_id = state_queue.get()
+            marked[state_id] = True
+
+            state = self._states[state_id]
+
+            for transition in state._transitions:
+                if not waiting[transition._to] and not marked[transition._to]:
+                    state_queue.put(transition._to)
+                    waiting[transition._to] = True
+
+        # copy the DFA and update states according to marked dict (i.e. is the state reachable or no)
+        min_dfa = deepcopy(self)
+
+        for i, state_marked in marked.items():
+            if not state_marked:
+                min_dfa._states.pop(i)
+                min_dfa._final_states_ids.discard(i)
+
+        return min_dfa
+
+    def _equivalent_states(self) -> set:
+        """
+        Returns a `UnorderedPair` set of the equivalent states in the DFA.
+        """
+
+        equivalents = set(unique_unordered_pairs(self._states.keys()))
+        not_equivalents = set()
+
+        for p in unique_unordered_pairs(self._states.keys()):
+            q, qp = self._states[p.a], self._states[p.b]
+            if (q._final and not qp._final) or (qp._final and not q._final): # final and not final states cannot be =
+                not_equivalents.add(p)
+                equivalents.remove(p)
+
+        new_neq_states = True
+
+        while new_neq_states:
+            new_neq_states = False
+
+            for q in unique_unordered_pairs(self._states.keys()):
+                for letter in self._alphabet:
+                    p = UnorderedPair(self._successor(q.a, letter), self._successor(q.b, letter))
+
+                    if p in not_equivalents:
+                        not_equivalents.add(q)
+                        equivalents.remove(q)
+                        new_neq_states = True
+
+
+        return equivalents
+
+    def minimized(self):
+        """
+        Returns the equivalent minimized complete DFA
+        """
+        pass
+
 class NFAutomaton(FAutomaton):
     """
     Class which represent a Non-Deterministic Finite Automaton
@@ -149,13 +256,26 @@ class NFAutomaton(FAutomaton):
 
     def __init__(self, alphabet : set):
         """
-        Create a new Non-Deterministic Finite Automaton with given states `states`
+        Create a new Non-Deterministic Finite Automaton with given alphabet `alphabet`
         """
     
         self._alphabet = alphabet
         self._states = {}
         self._initial_states_ids = set()
         self._final_states_ids = set()
+        self._completed = False
+
+    def complete(self):
+        """
+        Complete the FA with a PI state (hole state)
+        """
+        pass
+
+    def has_been_completed(self):
+        """
+        Predicate if the FA has been completed explicitely (with `complete` method)
+        """
+        return self._completed
 
     def _get_reachable_states(self, letter : str, states_ids : set) -> set:
         """
@@ -284,5 +404,45 @@ if __name__ == "__main__":
         print(a.accepts("ababbababb"), da.accepts("ababbababb"))
         print(a.accepts("caca"), da.accepts("caca"))
 
-    #test_dfa()
+    def test_reachable():
+        # counts if has a pair nb of 0
+        b = DFAutomaton(set("01"))
+
+        b.add_state(0, initial=True, final=True)
+        b.add_state(1)
+        b.add_state(2) # nr state
+        
+        b.add_transition("0", 0, 0)
+        b.add_transition("1", 0, 1)
+        b.add_transition("1", 1, 1)
+        b.add_transition("0", 1, 0)
+
+        b.add_transition("0", 2, 1)
+        b.add_transition("1", 2, 0)
+
+        r = b._reachable_part()
+
+    def test_equivalent():
+        # counts if has a pair nb of 0
+        b = DFAutomaton(set("01"))
+
+        b.add_state(0, initial=True, final=True)
+        b.add_state(1)
+        b.add_state(2)
+        b.add_state(3)
+
+        b.add_transition("0", 0, 0)
+        b.add_transition("1", 0, 1)
+        b.add_transition("1", 1, 1)
+        b.add_transition("0", 1, 0)
+        b.add_transition("0", 2, 0)
+        b.add_transition("1", 2, 1)
+        b.add_transition("0", 3, 0)
+        b.add_transition("1", 3, 1)
+
+        print(b._equivalent_states())
+
+    test_dfa()
     test_nfa()
+    test_reachable()
+    test_equivalent()
