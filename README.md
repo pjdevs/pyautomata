@@ -6,10 +6,12 @@ Prototyping library for Finite Automaton in Python. Will be implemented in an ot
 
 Support for :
 
-- Determinitic Finite Automaton (DFA)
+- Deterministic Finite Automaton (DFA)
 - Non-Deterministic Finite Automaton (NFA)
 - Determinization of a NFA
-- Execution of an (D/N)FA on a word of its alphabet
+- Execution of an (D/N)FA on a word built on its alphabet
+- Completion of an FA (Soon)
+- Minimization of a DFA(Soon)
 
 ## Future things to implement
 
