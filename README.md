@@ -10,8 +10,9 @@ Support for :
 - Non-Deterministic Finite Automaton (NFA)
 - Determinization of a NFA
 - Execution of an (D/N)FA on a word built on its alphabet
-- Completion of an FA (Soon)
-- Minimization of a DFA(Soon)
+- Completion of an DFA
+- Completion of an NFA (Soon)
+- Minimization of a DFA (Almost complete)
 
 ## Future things to implement
 
