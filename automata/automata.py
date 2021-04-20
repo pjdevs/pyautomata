@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from queue import Queue
 from copy import deepcopy
-from unordered_pairs import unique_unordered_pairs, UnorderedPair
+from .utils.unordered_pairs import unique_unordered_pairs, UnorderedPair
 
 def _is_word_on_alphabet(word : set, alphabet: set):
     return word.issubset(alphabet)
@@ -167,11 +167,38 @@ class DFAutomaton(FAutomaton):
 
         from_state._transitions.add(Transition(letters_set, to_id))
 
-    def complete(self):
+    def complete(self) -> bool:
         """
-        Complete the FA with a PI state (hole state)
+        Complete the FA with a PI state (hole state).
+        Returns wether the FA was complete or not.
         """
-        pass
+        
+        not_complete = False
+        transitions_to_add = {}
+
+        for state in self._states.values():
+            all_transitions = set()
+
+            for transition in state._transitions:
+                all_transitions = all_transitions.union(transition._letters)
+
+            diff_letters = self._alphabet.difference(all_transitions)
+
+            if len(diff_letters) > 0:
+                not_complete = True
+                transitions_to_add[state._id] = diff_letters 
+
+        if not_complete:
+            pi_id = sum(self._states.keys()) + 1
+            self.add_state(pi_id)
+            self.add_transition(self._alphabet, pi_id, pi_id)
+
+            for state_id, letters in transitions_to_add.items():
+                self.add_transition(letters, state_id, pi_id)
+
+        self._completed = True
+                
+        return not not_complete
 
     def has_been_completed(self):
         """
@@ -367,82 +394,3 @@ class NFAutomaton(FAutomaton):
             raise ValueError(f"State with id {to_id} doesn't exists")
 
         from_state._transitions.add(Transition(letters_set, to_id))
-
-if __name__ == "__main__":
-    def test_dfa():
-        # counts if has a pair nb of 0
-        b = DFAutomaton(set("01"))
-
-        b.add_state(0, initial=True, final=True)
-        b.add_state(1)
-        
-        b.add_transition("0", 0, 0)
-        b.add_transition("1", 0, 1)
-        b.add_transition("1", 1, 1)
-        b.add_transition("0", 1, 0)
-        
-        print(b.accepts("01001"))
-        print(b.accepts("01000"))
-        print(b.accepts("zizi"))
-
-    def test_nfa():
-        # a accepts words which end with an 'a'
-        a = NFAutomaton(set("ab"))
-
-        a.add_state(0, initial=True)
-        a.add_state(1, final=True)
-        a.add_state(2)
-
-        a.add_transition("ab", 0, 0)
-        a.add_transition("a", 0, 1)
-        a.add_transition("ab", 1, 2)
-        a.add_transition("ab", 2, 2)
-
-        da = a.determinized()
-
-        print(a.accepts("ababba"), da.accepts("ababba"))
-        print(a.accepts("ababbababb"), da.accepts("ababbababb"))
-        print(a.accepts("caca"), da.accepts("caca"))
-
-    def test_reachable():
-        # counts if has a pair nb of 0
-        b = DFAutomaton(set("01"))
-
-        b.add_state(0, initial=True, final=True)
-        b.add_state(1)
-        b.add_state(2) # nr state
-        
-        b.add_transition("0", 0, 0)
-        b.add_transition("1", 0, 1)
-        b.add_transition("1", 1, 1)
-        b.add_transition("0", 1, 0)
-
-        b.add_transition("0", 2, 1)
-        b.add_transition("1", 2, 0)
-
-        r = b._reachable_part()
-
-    def test_equivalent():
-        # counts if has a pair nb of 0
-        b = DFAutomaton(set("01"))
-
-        b.add_state(0, initial=True, final=True)
-        b.add_state(1)
-        b.add_state(2)
-        b.add_state(3)
-
-        b.add_transition("0", 0, 0)
-        b.add_transition("1", 0, 1)
-        b.add_transition("1", 1, 1)
-        b.add_transition("0", 1, 0)
-        b.add_transition("0", 2, 0)
-        b.add_transition("1", 2, 1)
-        b.add_transition("0", 3, 0)
-        b.add_transition("1", 3, 1)
-
-        print(b._equivalent_states())
-
-    test_dfa()
-    test_nfa()
-    test_reachable()
-    test_equivalent()
