@@ -40,7 +40,7 @@ class FAutomaton(ABC):
     Abstract class which represents a general Finite Automaton
     """
 
-    def __init__(self, alphabet):
+    def __init__(self, alphabet : set):
         """
         Common constructor for all FA.
         Construct a new FA with a given `alphabet`.
@@ -55,7 +55,7 @@ class FAutomaton(ABC):
         """
         Predicate if the FA has been completed explicitely (with `complete` method)
         """
-        
+
         return self._completed
 
     def complete(self) -> bool:
@@ -127,7 +127,7 @@ class DFAutomaton(FAutomaton):
         super().__init__(alphabet)
         self._initial_state_id = None
 
-    def successor(self, state_id, letter):
+    def successor(self, state_id : int, letter : str):
         """
         Returns, if it exists, the successor of the state `state_id` by transition `letter`.
         Else, returns `None`.
@@ -314,9 +314,9 @@ class NFAutomaton(FAutomaton):
         super().__init__(alphabet)
         self._initial_states_ids = set()
 
-    def _get_reachable_states(self, letter : str, states_ids : set) -> set:
+    def successors(self, states_ids : set, letter : str) -> set:
         """
-        Returns the list all reachable states from the list of states with id `states_ids` following the transition `letter`
+        Returns the list all successor states from the set of states with id `states_ids` by following the transition `letter`
         """
 
         reachables_states_ids = set()
@@ -336,7 +336,7 @@ class NFAutomaton(FAutomaton):
         reachable_states_ids = self._initial_states_ids
         
         for letter in word:
-            reachable_states_ids = self._get_reachable_states(letter, reachable_states_ids)
+            reachable_states_ids = self.successors(reachable_states_ids, letter)
 
         return not reachable_states_ids.isdisjoint(self._final_states_ids)
 
@@ -356,7 +356,7 @@ class NFAutomaton(FAutomaton):
             current_states_ids = states_to_treat.get()
 
             for letter in self._alphabet:
-                reachable_states_ids = self._get_reachable_states(letter, current_states_ids)
+                reachable_states_ids = self.successors(current_states_ids, letter)
 
                 if not reachable_states_ids in new_states:
                     dfa.add_state(len(new_states), False, not self._final_states_ids.isdisjoint(reachable_states_ids))
