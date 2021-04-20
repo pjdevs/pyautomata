@@ -35,11 +35,61 @@ class Transition:
         self._to = to
         self._letters = letters
 
-
 class FAutomaton(ABC):
     """
     Abstract class which represents a general Finite Automaton
     """
+
+    def __init__(self, alphabet):
+        """
+        Common constructor for all FA.
+        Construct a new FA with a given `alphabet`.
+        """
+
+        self._alphabet = alphabet
+        self._states = {}
+        self._final_states_ids = set()
+        self._completed = False
+
+    def has_been_completed(self):
+        """
+        Predicate if the FA has been completed explicitely (with `complete` method)
+        """
+        
+        return self._completed
+
+    def complete(self) -> bool:
+        """
+        Complete the FA with a PI state (hole state).
+        Returns wether the FA was complete or not.
+        """
+        
+        not_complete = False
+        transitions_to_add = {}
+
+        for state in self._states.values():
+            all_transitions = set()
+
+            for transition in state._transitions:
+                all_transitions = all_transitions.union(transition._letters)
+
+            diff_letters = self._alphabet.difference(all_transitions)
+
+            if len(diff_letters) > 0:
+                not_complete = True
+                transitions_to_add[state._id] = diff_letters 
+
+        if not_complete:
+            pi_id = sum(self._states.keys()) + 1
+            self.add_state(pi_id)
+            self.add_transition(self._alphabet, pi_id, pi_id)
+
+            for state_id, letters in transitions_to_add.items():
+                self.add_transition(letters, state_id, pi_id)
+
+        self._completed = True
+                
+        return not not_complete
 
     @abstractmethod
     def accepts(self, word : str) -> bool:
@@ -64,20 +114,6 @@ class FAutomaton(ABC):
         """
         pass
 
-    @abstractmethod
-    def complete(self):
-        """
-        Complete the FA with a PI state (hole state)
-        """
-        pass
-
-    @abstractmethod
-    def has_been_completed(self):
-        """
-        Predicate if the FA has been completed explicitely (with `complete` method)
-        """
-        pass
-
 class DFAutomaton(FAutomaton):
     """
     Class which represents a Deterministic Finite Automaton
@@ -88,11 +124,8 @@ class DFAutomaton(FAutomaton):
         Create a new Deterministic Finite Automaton with given alphabet `alphabet`
         """
 
-        self._alphabet = alphabet
-        self._states = {}
+        super().__init__(alphabet)
         self._initial_state_id = None
-        self._final_states_ids = set()
-        self._completed = False
 
     def successor(self, state_id, letter):
         """
@@ -170,45 +203,6 @@ class DFAutomaton(FAutomaton):
 
         from_state._transitions.add(Transition(letters_set, to_id))
 
-    def complete(self) -> bool:
-        """
-        Complete the FA with a PI state (hole state).
-        Returns wether the FA was complete or not.
-        """
-        
-        not_complete = False
-        transitions_to_add = {}
-
-        for state in self._states.values():
-            all_transitions = set()
-
-            for transition in state._transitions:
-                all_transitions = all_transitions.union(transition._letters)
-
-            diff_letters = self._alphabet.difference(all_transitions)
-
-            if len(diff_letters) > 0:
-                not_complete = True
-                transitions_to_add[state._id] = diff_letters 
-
-        if not_complete:
-            pi_id = sum(self._states.keys()) + 1
-            self.add_state(pi_id)
-            self.add_transition(self._alphabet, pi_id, pi_id)
-
-            for state_id, letters in transitions_to_add.items():
-                self.add_transition(letters, state_id, pi_id)
-
-        self._completed = True
-                
-        return not not_complete
-
-    def has_been_completed(self):
-        """
-        Predicate if the FA has been completed explicitely (with `complete` method)
-        """
-        return self._completed
-
     def reachable_part(self):
         """
         Returns a new DFA which represent the reachable part of this automaton
@@ -275,7 +269,7 @@ class DFAutomaton(FAutomaton):
 
     def merge_equivalent_states(self):
         """
-        Merge all equivalent states of the FA using `equivalent states` method
+        Merge all equivalent states of the FA using `equivalent_states` method
         """
 
         eq = self.equivalent_states()
@@ -317,23 +311,8 @@ class NFAutomaton(FAutomaton):
         Create a new Non-Deterministic Finite Automaton with given alphabet `alphabet`
         """
     
-        self._alphabet = alphabet
-        self._states = {}
+        super().__init__(alphabet)
         self._initial_states_ids = set()
-        self._final_states_ids = set()
-        self._completed = False
-
-    def complete(self):
-        """
-        Complete the FA with a PI state (hole state)
-        """
-        pass
-
-    def has_been_completed(self):
-        """
-        Predicate if the FA has been completed explicitely (with `complete` method)
-        """
-        return self._completed
 
     def _get_reachable_states(self, letter : str, states_ids : set) -> set:
         """
