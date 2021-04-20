@@ -21,7 +21,16 @@ Support for :
 - Build an FA from regular expressions
 - Improve management of new states while determinizing an NFA
 
-# Examples
+## Installation
+
+For now no wheel package is available.
+You can install this from github directcly with setuptools.
+
+```
+pip install git+https://github.com/pjdevs/pyautomata
+```
+
+## Examples
 
 ```python
 a = NFAutomaton(set("ab"))
