@@ -51,7 +51,7 @@ def test_reachable():
     b.add_transition("0", 2, 1)
     b.add_transition("1", 2, 0)
 
-    r = b._reachable_part()
+    r = b.reachable_part()
 
 def test_equivalent():
     # counts if has a pair nb of 0
@@ -71,7 +71,7 @@ def test_equivalent():
     b.add_transition("0", 3, 0)
     b.add_transition("1", 3, 1)
 
-    print(b._equivalent_states())
+    print(b.equivalent_states())
 
 def test_complete():
     # accepts (b(a+b))*
@@ -97,3 +97,30 @@ def test_complete():
 
     print("expected: True, returned:", a.accepts("babb"))
     print("expected: False, returned:", a.accepts("abbaba"))
+
+def test_merge_equivalent():
+    b = DFAutomaton(set("01"))
+
+    b.add_state(0, initial=True, final=True)
+    b.add_state(1)
+    b.add_state(2)
+    b.add_state(3)
+
+    b.add_transition("0", 0, 0)
+    b.add_transition("1", 0, 1)
+    b.add_transition("1", 1, 1)
+    b.add_transition("0", 1, 0)
+    b.add_transition("0", 2, 0)
+    b.add_transition("1", 2, 1)
+    b.add_transition("0", 3, 0)
+    b.add_transition("1", 3, 1)
+
+    print("old states :")
+    for s in b._states.keys():
+        print(s)
+
+    b.merge_equivalent_states()
+
+    print("remaining states :")
+    for s in b._states.keys():
+        print(s)

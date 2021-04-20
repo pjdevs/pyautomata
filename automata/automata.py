@@ -94,7 +94,7 @@ class DFAutomaton(FAutomaton):
         self._final_states_ids = set()
         self._completed = False
 
-    def _successor(self, state_id, letter):
+    def successor(self, state_id, letter):
         """
         Returns, if it exists, the successor of the state `state_id` by transition `letter`.
         Else, returns `None`.
@@ -114,8 +114,11 @@ class DFAutomaton(FAutomaton):
 
         current_state_id = self._initial_state_id
 
+        if current_state_id is None:
+            return False
+
         for letter in word:
-            current_state_id = self._successor(current_state_id, letter)
+            current_state_id = self.successor(current_state_id, letter)
 
             if current_state_id is None:
                 return False
@@ -206,7 +209,7 @@ class DFAutomaton(FAutomaton):
         """
         return self._completed
 
-    def _reachable_part(self):
+    def reachable_part(self):
         """
         Returns a new DFA which represent the reachable part of this automaton
         """
@@ -239,7 +242,7 @@ class DFAutomaton(FAutomaton):
 
         return min_dfa
 
-    def _equivalent_states(self) -> set:
+    def equivalent_states(self) -> set:
         """
         Returns a `UnorderedPair` set of the equivalent states in the DFA.
         """
@@ -260,7 +263,7 @@ class DFAutomaton(FAutomaton):
 
             for q in unique_unordered_pairs(self._states.keys()):
                 for letter in self._alphabet:
-                    p = UnorderedPair(self._successor(q.a, letter), self._successor(q.b, letter))
+                    p = UnorderedPair(self.successor(q.a, letter), self.successor(q.b, letter))
 
                     if p in not_equivalents:
                         not_equivalents.add(q)
@@ -270,11 +273,39 @@ class DFAutomaton(FAutomaton):
 
         return equivalents
 
+    def merge_equivalent_states(self):
+        """
+        Merge all equivalent states of the FA using `equivalent states` method
+        """
+
+        eq = self.equivalent_states()
+
+        # remove equivalent states
+        for q, qp in eq:
+            self._states.pop(qp, None)
+
+        # remove remianing transitions to removed states
+        for state in self._states.values():
+            transition_to_remove = set()
+
+            for transition in state._transitions:
+                if UnorderedPair(state._id, transition._to) in eq:
+                    transition_to_remove.add(transition)
+
+            for transition in transition_to_remove:
+                state._transitions.remove(transition)
+
+
     def minimized(self):
         """
         Returns the equivalent minimized complete DFA
         """
-        pass
+
+        m = self.reachable_part()
+        m.complete()
+        m.merge_equivalent_states()
+
+        return m
 
 class NFAutomaton(FAutomaton):
     """
